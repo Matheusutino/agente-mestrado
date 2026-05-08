@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -20,12 +21,16 @@ def parse_args() -> argparse.Namespace:
         description="Run a fully agentic text classification pipeline."
     )
     parser.add_argument("--task", required=True, help="Task description for the agent.")
-    parser.add_argument("--output-root", required=True, help="Directory for run artifacts.")
+    parser.add_argument(
+        "--output-root",
+        required=True,
+        help="Base directory where the run folder will be created.",
+    )
     parser.add_argument(
         "--llm-provider",
         default="nvidia_nim",
-        choices=["nvidia_nim"],
-        help="LLM provider backend (kept for compatibility, currently ignored).",
+        choices=["nvidia_nim", "openrouter"],
+        help="LLM provider backend.",
     )
     parser.add_argument("--llm-model", required=True, help="Model name.")
     parser.add_argument(
@@ -58,6 +63,19 @@ def save_json(path: Path, payload) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as file:
         json.dump(payload, file, indent=2, ensure_ascii=False)
+
+
+def _slugify_model_name(value: str) -> str:
+    cleaned = "".join(char if char.isalnum() else "_" for char in value.strip().lower())
+    while "__" in cleaned:
+        cleaned = cleaned.replace("__", "_")
+    return cleaned.strip("_")
+
+
+def _build_output_dir(base_root: Path, llm_provider: str, llm_model: str) -> Path:
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_name = f"{llm_provider}_{_slugify_model_name(llm_model)}_{timestamp}"
+    return base_root / run_name
 
 
 def _selected_attempt(history: OptimizationHistory) -> AttemptSummary | None:
@@ -115,8 +133,6 @@ def _build_final_report(history: OptimizationHistory) -> str:
             lines.append(
                 f"- Best metrics: accuracy={selected.metrics.accuracy} f1_macro={selected.metrics.f1_macro}"
             )
-        if selected.result.optimization_comment:
-            lines.append(f"- Planner note: {selected.result.optimization_comment}")
     lines.append("")
     return "\n".join(lines)
 
@@ -124,13 +140,20 @@ def _build_final_report(history: OptimizationHistory) -> str:
 def main() -> int:
     load_dotenv()
     args = parse_args()
-    output_root = Path(args.output_root).expanduser().resolve()
-    output_root.mkdir(parents=True, exist_ok=True)
+    base_output_root = Path(args.output_root).expanduser().resolve()
+    base_output_root.mkdir(parents=True, exist_ok=True)
+    output_root = _build_output_dir(
+        base_root=base_output_root,
+        llm_provider=args.llm_provider,
+        llm_model=args.llm_model,
+    )
+    output_root.mkdir(parents=True, exist_ok=False)
 
     history = optimize_pipeline(
         task=args.task,
         model_name=args.llm_model,
         output_dir=output_root,
+        llm_provider=args.llm_provider,
         max_attempts=args.max_attempts,
         max_minutes=args.max_minutes,
         verbose=not args.quiet_llm,

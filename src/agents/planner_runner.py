@@ -22,13 +22,18 @@ def optimize_pipeline(
     task: str,
     model_name: str,
     output_dir: Path,
+    llm_provider: str = "nvidia_nim",
     max_attempts: int = 3,
     max_minutes: int | None = 10,
     verbose: bool = False,
     thinking_effort: str | None = None,
 ) -> OptimizationHistory | None:
     try:
-        agent = build_planner_agent(model_name=model_name, thinking_effort=thinking_effort)
+        agent = build_planner_agent(
+            model_name=model_name,
+            llm_provider=llm_provider,
+            thinking_effort=thinking_effort,
+        )
     except Exception as exc:
         print(f"Agent init failed: {exc}", file=sys.stderr)
         return None
@@ -64,22 +69,6 @@ def optimize_pipeline(
                     result=execution.result,
                 )
             )
-            if execution.result.stop_optimization:
-                finished_reason = "planner_stopped_early"
-                history = OptimizationHistory(
-                    task=task,
-                    max_attempts=max_attempts,
-                    max_minutes=max_minutes,
-                    attempts=attempts,
-                    finished_reason=finished_reason,
-                )
-                best_attempt = select_best_attempt(attempts)
-                if best_attempt is not None:
-                    history.selected_attempt_index = best_attempt.attempt_index
-                    history.selected_attempt_dir = best_attempt.attempt_dir
-                    history.final_result = best_attempt.result
-                save_history(output_dir, history)
-                return history
         except Exception as exc:
             print(f"Attempt {attempt_index} failed: {exc}", file=sys.stderr)
             attempts.append(

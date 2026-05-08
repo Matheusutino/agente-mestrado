@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 
 from src.pipeline.data import dataset_profile, discover_datasets
 from src.pipeline.evaluation import evaluate_classifier
+from src.pipeline.io import read_json_file
 from src.pipeline.modeling import train_classifier
 from src.pipeline.preprocessing import preprocess_dataset
 from src.pipeline.report import generate_report
@@ -18,17 +19,48 @@ from src.pipeline.web import search_arxiv
 from src.types import PipelineResult
 
 NVIDIA_NIM_BASE_URL = "https://integrate.api.nvidia.com/v1"
-PLANNER_SYSTEM_PROMPT = """You are a text classification pipeline agent.
-Think through which dataset is most appropriate for the task, which column should be treated as text, which column should be treated as the label, whether sparse lexical features or dense sentence embeddings best fit the context, which classifier is the strongest choice, and which metrics are worth reporting.
-Do not ask questions. If information is ambiguous, make a reasonable assumption and record it.
-Use the provided functions to inspect datasets, optionally consult arXiv when helpful, and execute the pipeline. If you choose sentence_transformer, provide a model_name explicitly.
-When revision context is provided, inspect the prior attempt artifacts and either improve the next attempt or keep the current strategy if it is already adequate. Set stop_optimization=true only when no further attempt is warranted.
-Return only a valid PipelineResult."""
+PLANNER_SYSTEM_PROMPT = """You are an autonomous text classification pipeline agent.
+
+Your objective is to solve the requested text classification task end-to-end by selecting the most appropriate available dataset, identifying the text and label columns, choosing a suitable feature representation, selecting a classifier, running the pipeline, and returning a valid PipelineResult.
+
+ Before acting, form a concise internal plan that considers:
+- the semantic match between the task and each available dataset;
+- which column or combination of columns should be used as input text;
+- which column should be used as the target label;
+- whether the task is better served by sparse lexical features, dense sentence embeddings, or both;
+- which classifier is appropriate for the representation, dataset size, label distribution, and task type;
+- which metrics are most informative, especially under class imbalance.
+
+Do not ask the user questions. If information is ambiguous, make the strongest reasonable assumption and record that assumption in the final PipelineResult when the schema allows it.
+
+Use the available tools to inspect datasets, read prior artifacts when revision context is provided, and execute the pipeline. Consult arXiv only when it is directly useful for selecting a method or resolving a methodological ambiguity; otherwise, avoid unnecessary external research.
+
+When revision context is provided:
+- inspect the previous artifacts and metrics;
+- identify the weakest aspect of the prior attempt;
+- propose and execute the strongest next attempt based on observed evidence;
+- avoid repeating the same configuration unless there is a clear reason.
+
+Before every tool call:
+- inspect the exact tool schema;
+- use only the expected field names and types;
+- do not invent aliases, nested shapes, optional fields, or alternative argument names;
+- ensure that every required field is provided.
+
+After every tool result:
+- verify whether the result supports the next step;
+- if a tool call fails, inspect the exact tool input and the exact returned error/output carefully before changing anything;
+- correct the arguments according to the schema and the observed error details before retrying;
+- do not guess the fix when the error message already indicates what is wrong;
+- do not fabricate results, paths, metrics, or artifact contents.
+
+Return only a valid PipelineResult. Do not include prose, Markdown, explanations, logs, or extra text outside the PipelineResult."""
 
 
 PIPELINE_TOOLS = [
     discover_datasets,
     dataset_profile,
+    read_json_file,
     search_arxiv,
     preprocess_dataset,
     build_representation,
@@ -49,13 +81,61 @@ class AgentExecutionRecord:
     events: list[dict[str, Any]]
 
 
-def build_planner_agent(model_name: str, thinking_effort: str | None = None):
+def _build_agent(model, model_settings):
+    from pydantic_ai import Agent
+
+    try:
+        return Agent(
+            model=model,
+            output_type=PipelineResult,
+            system_prompt=PLANNER_SYSTEM_PROMPT,
+            model_settings=model_settings,
+            tools=PIPELINE_TOOLS,
+        )
+    except TypeError:
+        return Agent(
+            model=model,
+            result_type=PipelineResult,
+            system_prompt=PLANNER_SYSTEM_PROMPT,
+            model_settings=model_settings,
+            tools=PIPELINE_TOOLS,
+        )
+
+
+def build_planner_agent(
+    model_name: str,
+    llm_provider: str = "nvidia_nim",
+    thinking_effort: str | None = None,
+):
     load_dotenv()
+    model_settings = None
+    if llm_provider == "openrouter":
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        if not api_key:
+            raise EnvironmentError(
+                "OPENROUTER_API_KEY is not set. Add it to a .env file or environment."
+            )
+        try:
+            from pydantic_ai.models.openrouter import OpenRouterModel, OpenRouterModelSettings
+
+            if thinking_effort is not None:
+                try:
+                    model_settings = OpenRouterModelSettings(
+                        openrouter_reasoning={"effort": thinking_effort}
+                    )
+                except TypeError:
+                    model_settings = None
+            model = OpenRouterModel(model_name)
+            return _build_agent(model, model_settings)
+        except Exception as exc:
+            raise ImportError(
+                "OpenRouter support requires a compatible pydantic-ai installation."
+            ) from exc
+
     api_key = os.getenv("NVIDIA_API_KEY")
     if not api_key:
         raise EnvironmentError("NVIDIA_API_KEY is not set. Add it to a .env file or environment.")
 
-    model_settings = None
     if thinking_effort is not None:
         try:
             from pydantic_ai.models.openai import OpenAIModelSettings
@@ -81,22 +161,7 @@ def build_planner_agent(model_name: str, thinking_effort: str | None = None):
         except TypeError:
             model = OpenAIModel(model_name, provider=provider)
 
-        try:
-            return Agent(
-                model=model,
-                output_type=PipelineResult,
-                system_prompt=PLANNER_SYSTEM_PROMPT,
-                model_settings=model_settings,
-                tools=PIPELINE_TOOLS,
-            )
-        except TypeError:
-            return Agent(
-                model=model,
-                result_type=PipelineResult,
-                system_prompt=PLANNER_SYSTEM_PROMPT,
-                model_settings=model_settings,
-                tools=PIPELINE_TOOLS,
-            )
+        return _build_agent(model, model_settings)
     except Exception:
         pass
 
@@ -113,22 +178,7 @@ def build_planner_agent(model_name: str, thinking_effort: str | None = None):
         except TypeError:
             model = OpenAIModel(model_name, base_url=NVIDIA_NIM_BASE_URL, api_key=api_key)
 
-        try:
-            return Agent(
-                model=model,
-                output_type=PipelineResult,
-                system_prompt=PLANNER_SYSTEM_PROMPT,
-                model_settings=model_settings,
-                tools=PIPELINE_TOOLS,
-            )
-        except TypeError:
-            return Agent(
-                model=model,
-                result_type=PipelineResult,
-                system_prompt=PLANNER_SYSTEM_PROMPT,
-                model_settings=model_settings,
-                tools=PIPELINE_TOOLS,
-            )
+        return _build_agent(model, model_settings)
     except Exception as exc:
         raise ImportError(
             "PydanticAI is required. Install a compatible version of pydantic-ai."
@@ -197,10 +247,11 @@ def _build_event_stream_handler(verbose: bool):
                         "args": str(event.part.args),
                     }
                     event_log.append(payload)
-                    _print_event(
-                        f"[planner/tool-part-start] tool_name={event.part.tool_name} args={event.part.args}",
-                        verbose=verbose,
-                    )
+                    # Older debug format kept for reference:
+                    # _print_event(
+                    #     f"[planner/tool-part-start] tool_name={event.part.tool_name} args={event.part.args}",
+                    #     verbose=verbose,
+                    # )
                 elif part_kind == "text":
                     if not text_started:
                         event_log.append({"event": "text_start"})
@@ -237,10 +288,11 @@ def _build_event_stream_handler(verbose: bool):
                     event_log.append(
                         {"event": "tool_part_delta", "args_delta": str(delta.args_delta)}
                     )
-                    _print_event(
-                        f"[planner/tool-part-delta] args_delta={delta.args_delta}",
-                        verbose=verbose,
-                    )
+                    # Older debug format kept for reference:
+                    # _print_event(
+                    #     f"[planner/tool-part-delta] args_delta={delta.args_delta}",
+                    #     verbose=verbose,
+                    # )
                 continue
 
             if isinstance(event, FunctionToolCallEvent):
@@ -302,8 +354,9 @@ def _build_event_stream_handler(verbose: bool):
                 event_log.append({"event": "part_end", "kind": part_kind})
                 if part_kind == "thinking" and verbose:
                     print(file=sys.stderr, flush=True)
-                elif part_kind == "tool-call":
-                    _print_event("[planner/tool-part-end]", verbose=verbose)
+                # Older debug format kept for reference:
+                # elif part_kind == "tool-call":
+                #     _print_event("[planner/tool-part-end]", verbose=verbose)
 
     return handle_event, event_log
 

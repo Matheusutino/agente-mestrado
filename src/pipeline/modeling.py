@@ -13,7 +13,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import LinearSVC
 
-from src.types import ModelConfig, RepresentationResult, TrainingResult
+from src.types import FIXED_RANDOM_SEED, ModelConfig, RepresentationResult, TrainingResult
 
 
 def _coerce_model_config(config: ModelConfig | dict | str) -> ModelConfig:
@@ -62,7 +62,7 @@ def build_model(config: ModelConfig):
             min_samples_split=config.min_samples_split,
             min_samples_leaf=config.min_samples_leaf,
             class_weight=config.class_weight,
-            random_state=config.random_state,
+            random_state=FIXED_RANDOM_SEED,
         )
     if config.model == "knn":
         return KNeighborsClassifier(

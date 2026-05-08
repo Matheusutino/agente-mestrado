@@ -10,6 +10,7 @@ from src.types import (
     EvaluationResult,
     OptimizationHistory,
     PipelineResult,
+    RevisionAttemptSummary,
     RevisionRequest,
 )
 
@@ -113,9 +114,43 @@ def save_agent_trace(attempt_dir: Path, record: AgentExecutionRecord) -> None:
 
 
 def build_revision_request(attempts: list[AttemptSummary]) -> RevisionRequest:
+    previous_attempt = RevisionAttemptSummary(
+        attempt_index=attempts[-1].attempt_index,
+        attempt_dir=attempts[-1].attempt_dir,
+        status=attempts[-1].status,
+        task=attempts[-1].task,
+        result=attempts[-1].result,
+        metrics=attempts[-1].metrics,
+        agent_run_id=attempts[-1].agent_run_id,
+        agent_conversation_id=attempts[-1].agent_conversation_id,
+        agent_usage=attempts[-1].agent_usage,
+        representation_config=attempts[-1].representation_config,
+        model_parameters=attempts[-1].model_parameters,
+        error=attempts[-1].error,
+    )
+
+    prior_attempts: list[RevisionAttemptSummary] = []
+    for attempt in attempts[:-1]:
+        prior_attempts.append(
+            RevisionAttemptSummary(
+                attempt_index=attempt.attempt_index,
+                attempt_dir=attempt.attempt_dir,
+                status=attempt.status,
+                task=attempt.task,
+                result=attempt.result,
+                metrics=attempt.metrics,
+                agent_run_id=attempt.agent_run_id,
+                agent_conversation_id=attempt.agent_conversation_id,
+                agent_usage=attempt.agent_usage,
+                representation_config=attempt.representation_config,
+                model_parameters=attempt.model_parameters,
+                error=attempt.error,
+            )
+        )
+
     return RevisionRequest(
-        previous_attempt=attempts[-1],
-        prior_attempts=attempts[:-1],
+        previous_attempt=previous_attempt,
+        prior_attempts=prior_attempts,
     )
 
 

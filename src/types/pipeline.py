@@ -31,8 +31,6 @@ class PipelineResult(BaseModel):
     metrics_requested: list[Literal["accuracy", "f1_macro", "precision_macro", "recall_macro"]]
     assumptions: list[str]
     justification: str
-    stop_optimization: bool = False
-    optimization_comment: str | None = None
 
 
 class AttemptSummary(BaseModel):
@@ -51,9 +49,24 @@ class AttemptSummary(BaseModel):
     error: str | None = None
 
 
+class RevisionAttemptSummary(BaseModel):
+    attempt_index: int
+    attempt_dir: str
+    status: Literal["success", "failed"]
+    task: str
+    result: PipelineResult | None = None
+    metrics: EvaluationResult | None = None
+    agent_run_id: str | None = None
+    agent_conversation_id: str | None = None
+    agent_usage: dict[str, Any] | None = None
+    representation_config: dict[str, Any] | None = None
+    model_parameters: dict[str, Any] | None = None
+    error: str | None = None
+
+
 class RevisionRequest(BaseModel):
-    previous_attempt: AttemptSummary
-    prior_attempts: list[AttemptSummary] = Field(default_factory=list)
+    previous_attempt: RevisionAttemptSummary
+    prior_attempts: list[RevisionAttemptSummary] = Field(default_factory=list)
 
 
 class OptimizationHistory(BaseModel):

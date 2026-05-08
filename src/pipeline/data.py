@@ -15,8 +15,8 @@ def _class_distribution(series: pd.Series) -> dict[str, int]:
     return {str(label): int(count) for label, count in counts.items()}
 
 
-def _safe_sample_rows(df: pd.DataFrame, sample_size: int = 5) -> list[dict[str, Any]]:
-    sample = df.head(sample_size).copy()
+def _safe_sample_rows(df: pd.DataFrame) -> list[dict[str, Any]]:
+    sample = df.head(5).copy()
     sample = sample.where(pd.notnull(sample), None)
     return sample.to_dict(orient="records")
 
@@ -35,11 +35,8 @@ def _safe_describe_summary(df: pd.DataFrame) -> dict[str, dict[str, Any]]:
     }
 
 
-def discover_datasets(path: str = DEFAULT_DATASETS_DIR) -> DiscoveredDatasets:
-    """Discover CSV datasets under a directory.
-
-    Args:
-        path: Directory path searched recursively for `.csv` files.
+def discover_datasets() -> DiscoveredDatasets:
+    """Discover CSV datasets under the default datasets directory.
 
     Returns:
         A structured list of absolute dataset paths.
@@ -48,7 +45,7 @@ def discover_datasets(path: str = DEFAULT_DATASETS_DIR) -> DiscoveredDatasets:
         FileNotFoundError: If the discovery path does not exist or no CSV files are found.
         ValueError: If the discovery path is not a directory.
     """
-    target = Path(path).expanduser().resolve()
+    target = Path(DEFAULT_DATASETS_DIR).expanduser().resolve()
     if not target.exists():
         raise FileNotFoundError(f"Discovery path not found: {target}")
     if not target.is_dir():
@@ -61,12 +58,11 @@ def discover_datasets(path: str = DEFAULT_DATASETS_DIR) -> DiscoveredDatasets:
     return DiscoveredDatasets(dataset_paths=datasets)
 
 
-def dataset_profile(dataset_path: str | Path, sample_size: int = 5) -> DatasetProfile:
+def dataset_profile(dataset_path: str | Path) -> DatasetProfile:
     """Profile a dataset for downstream LLM planning.
 
     Args:
         dataset_path: Path to the CSV dataset.
-        sample_size: Number of head rows to include in the profile sample.
 
     Returns:
         A structured dataset profile.
@@ -103,7 +99,7 @@ def dataset_profile(dataset_path: str | Path, sample_size: int = 5) -> DatasetPr
         column_types=column_types,
         missing_values=missing_values,
         describe_summary=_safe_describe_summary(df),
-        sample_rows=_safe_sample_rows(df, sample_size=sample_size),
+        sample_rows=_safe_sample_rows(df),
         class_distributions=class_distributions,
         notes=notes,
     )

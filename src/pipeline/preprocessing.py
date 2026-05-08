@@ -15,8 +15,6 @@ def preprocess_dataset(
     text_column: str,
     label_column: str,
     run_dir: str,
-    test_size: float = FIXED_TEST_SIZE,
-    random_state: int = FIXED_RANDOM_SEED,
 ) -> PreprocessingResult:
     """Load, clean, and split a dataset, then persist split artifacts into run_dir."""
     run_path = Path(run_dir).expanduser().resolve()
@@ -45,8 +43,8 @@ def preprocess_dataset(
     X_train, X_test, y_train, y_test = train_test_split(
         working_df[text_column].tolist(),
         working_df[label_column].tolist(),
-        test_size=test_size,
-        random_state=random_state,
+        test_size=FIXED_TEST_SIZE,
+        random_state=FIXED_RANDOM_SEED,
         stratify=stratify,
     )
 
@@ -76,8 +74,8 @@ def preprocess_dataset(
         },
         train_rows=len(X_train),
         test_rows=len(X_test),
-        test_size=test_size,
-        random_state=random_state,
+        test_size=FIXED_TEST_SIZE,
+        random_state=FIXED_RANDOM_SEED,
     )
     (run_path / "dataset_info.json").write_text(
         json.dumps(result.model_dump(mode="json"), indent=2, ensure_ascii=False),

@@ -15,6 +15,7 @@ from .pipeline import (
     OptimizationHistory,
     PipelineResult,
     ReportResult,
+    RevisionAttemptSummary,
     RevisionRequest,
 )
 from .preprocessing import PreprocessingResult
@@ -48,6 +49,7 @@ __all__ = [
     "ReportResult",
     "RepresentationConfig",
     "RepresentationResult",
+    "RevisionAttemptSummary",
     "RevisionRequest",
     "SparseRepresentationConfig",
     "TrainingResult",

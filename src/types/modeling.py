@@ -4,9 +4,6 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-from .common import FIXED_RANDOM_SEED
-
-
 class LogisticRegressionConfig(BaseModel):
     model: Literal["logistic_regression"]
     max_iter: int = 1000
@@ -59,7 +56,6 @@ class DecisionTreeConfig(BaseModel):
     min_samples_split: int = 2
     min_samples_leaf: int = 1
     class_weight: Literal["balanced"] | None = None
-    random_state: int = FIXED_RANDOM_SEED
 
     @field_validator("max_depth")
     @classmethod

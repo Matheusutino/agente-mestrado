@@ -5,3 +5,5 @@ pydantic>=2.0
 pydantic-ai>=0.0.20
 python-dotenv>=1.0
 sentence-transformers>=3.0
+langgraph>=1.0
+langchain-openrouter>=0.1

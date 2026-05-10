@@ -20,7 +20,11 @@ from src.types import EvaluationResult, RepresentationResult
 
 
 def evaluate_classifier(run_dir: str, metrics: list[str]) -> EvaluationResult:
-    """Evaluate the persisted model on the persisted test split and save artifacts."""
+    """Evaluate the persisted model on the persisted test split and save artifacts.
+
+    Example:
+        `evaluate_classifier("/abs/path/to/run_dir", ["accuracy", "f1_macro", "precision_macro", "recall_macro"])`
+    """
     run_path = Path(run_dir).expanduser().resolve()
     model = joblib.load(run_path / "model.joblib")
     representation_metadata = RepresentationResult.model_validate_json(

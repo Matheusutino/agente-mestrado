@@ -10,13 +10,13 @@ from .modeling import (
     TrainingResult,
 )
 from .pipeline import (
-    AttemptSummary,
     EvaluationResult,
     OptimizationHistory,
     PipelineResult,
     ReportResult,
-    RevisionAttemptSummary,
     RevisionRequest,
+    RevisionRoundSummary,
+    RoundSummary,
 )
 from .preprocessing import PreprocessingResult
 from .representation import (
@@ -30,7 +30,6 @@ from .web import ArxivArticle, ArxivSearchResult
 __all__ = [
     "ArxivArticle",
     "ArxivSearchResult",
-    "AttemptSummary",
     "DatasetProfile",
     "DecisionTreeConfig",
     "DenseRepresentationConfig",
@@ -49,8 +48,9 @@ __all__ = [
     "ReportResult",
     "RepresentationConfig",
     "RepresentationResult",
-    "RevisionAttemptSummary",
     "RevisionRequest",
+    "RevisionRoundSummary",
+    "RoundSummary",
     "SparseRepresentationConfig",
     "TrainingResult",
     "ensure_path_string",

@@ -7,6 +7,7 @@ import joblib
 import numpy as np
 import scipy.sparse as sp
 from pydantic import TypeAdapter
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.neighbors import KNeighborsClassifier
@@ -64,6 +65,16 @@ def build_model(config: ModelConfig):
             class_weight=config.class_weight,
             random_state=FIXED_RANDOM_SEED,
         )
+    if config.model == "random_forest":
+        return RandomForestClassifier(
+            n_estimators=config.n_estimators,
+            max_depth=config.max_depth,
+            min_samples_split=config.min_samples_split,
+            min_samples_leaf=config.min_samples_leaf,
+            class_weight=config.class_weight,
+            random_state=FIXED_RANDOM_SEED,
+            n_jobs=-1,
+        )
     if config.model == "knn":
         return KNeighborsClassifier(
             n_neighbors=config.n_neighbors,
@@ -80,6 +91,10 @@ def train_classifier(run_dir: str, config: ModelConfig | dict | str) -> Training
         run_dir: Directory containing persisted training features and labels.
         config: Typed config, plain dict, or JSON string describing the model.
 
+    Examples:
+        `train_classifier("/abs/path/to/run_dir", {"model": "logistic_regression", "max_iter": 1000, "class_weight": "balanced", "c": 1.0})`
+        `train_classifier("/abs/path/to/run_dir", {"model": "linear_svm", "class_weight": "balanced", "c": 1.0})`
+
     Returns:
         A summary describing the trained model and training set size.
     """
@@ -94,7 +109,7 @@ def train_classifier(run_dir: str, config: ModelConfig | dict | str) -> Training
     ):
         raise ValueError(
             "multinomial_nb is not supported with sentence_transformer features; "
-            "use linear_svm, logistic_regression, decision_tree, or knn instead."
+            "use linear_svm, logistic_regression, decision_tree, random_forest, or knn instead."
         )
 
     if representation_metadata.feature_storage_format == "sparse_npz":

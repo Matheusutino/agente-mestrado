@@ -14,7 +14,11 @@ def generate_report(
     assumptions: list[str],
     justification: str,
 ) -> ReportResult:
-    """Generate and save a markdown report from persisted pipeline artifacts."""
+    """Generate and save a markdown report from persisted pipeline artifacts.
+
+    Example:
+        `generate_report("/abs/path/to/run_dir", "Classify sentiment texts", "tfidf", "logistic_regression", ["The text column is 'text'."], "TF-IDF with logistic regression is a strong baseline for balanced sentiment data.")`
+    """
     run_path = Path(run_dir).expanduser().resolve()
     info = json.loads((run_path / "dataset_info.json").read_text(encoding="utf-8"))
     metrics = json.loads((run_path / "metrics.json").read_text(encoding="utf-8"))

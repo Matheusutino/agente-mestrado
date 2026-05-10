@@ -79,6 +79,43 @@ class DecisionTreeConfig(BaseModel):
         return value
 
 
+class RandomForestConfig(BaseModel):
+    model: Literal["random_forest"]
+    n_estimators: int = 100
+    max_depth: int | None = None
+    min_samples_split: int = 2
+    min_samples_leaf: int = 1
+    class_weight: Literal["balanced"] | None = None
+
+    @field_validator("n_estimators")
+    @classmethod
+    def validate_n_estimators(cls, value: int) -> int:
+        if value < 1:
+            raise ValueError("n_estimators must be at least 1.")
+        return value
+
+    @field_validator("max_depth")
+    @classmethod
+    def validate_max_depth(cls, value: int | None) -> int | None:
+        if value is not None and value < 1:
+            raise ValueError("max_depth must be at least 1 when provided.")
+        return value
+
+    @field_validator("min_samples_split")
+    @classmethod
+    def validate_min_samples_split(cls, value: int) -> int:
+        if value < 2:
+            raise ValueError("min_samples_split must be at least 2.")
+        return value
+
+    @field_validator("min_samples_leaf")
+    @classmethod
+    def validate_min_samples_leaf(cls, value: int) -> int:
+        if value < 1:
+            raise ValueError("min_samples_leaf must be at least 1.")
+        return value
+
+
 class KNNConfig(BaseModel):
     model: Literal["knn"]
     n_neighbors: int = 5
@@ -98,6 +135,7 @@ ModelConfig = Annotated[
     | LinearSVMConfig
     | MultinomialNBConfig
     | DecisionTreeConfig
+    | RandomForestConfig
     | KNNConfig,
     Field(discriminator="model"),
 ]
@@ -109,6 +147,7 @@ class TrainingResult(BaseModel):
         "linear_svm",
         "multinomial_nb",
         "decision_tree",
+        "random_forest",
         "knn",
     ]
     trained_on_rows: int

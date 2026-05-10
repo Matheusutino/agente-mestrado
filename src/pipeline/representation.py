@@ -78,6 +78,10 @@ def build_representation(
     caller chooses within a coherent family of parameters instead of a large
     flat argument list. JSON-string configs are also accepted defensively
     because some models serialize nested tool arguments that way.
+
+    Examples:
+        `build_representation("/abs/path/to/run_dir", {"representation": "tfidf", "max_features": 5000, "ngram_min": 1, "ngram_max": 2})`
+        `build_representation("/abs/path/to/run_dir", {"representation": "sentence_transformer", "model_name": "sentence-transformers/all-MiniLM-L6-v2"})`
     """
     run_path = Path(run_dir).expanduser().resolve()
     split_data = np.load(run_path / "splits.npz", allow_pickle=True)

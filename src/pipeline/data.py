@@ -38,6 +38,9 @@ def _safe_describe_summary(df: pd.DataFrame) -> dict[str, dict[str, Any]]:
 def discover_datasets() -> DiscoveredDatasets:
     """Discover CSV datasets under the default datasets directory.
 
+    Example:
+        `discover_datasets()`
+
     Returns:
         A structured list of absolute dataset paths.
 
@@ -63,6 +66,9 @@ def dataset_profile(dataset_path: str | Path) -> DatasetProfile:
 
     Args:
         dataset_path: Path to the CSV dataset.
+
+    Example:
+        `dataset_profile("/abs/path/to/data.csv")`
 
     Returns:
         A structured dataset profile.

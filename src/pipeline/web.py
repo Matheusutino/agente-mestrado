@@ -34,6 +34,9 @@ def search_arxiv(
         sort_by: Sort field accepted by arXiv (`relevance`, `lastUpdatedDate`, `submittedDate`).
         sort_order: Sort order accepted by arXiv (`ascending`, `descending`).
 
+    Example:
+        `search_arxiv("all:transformer", max_results=5, start=0, sort_by="relevance", sort_order="descending")`
+
     Returns:
         A structured list of arXiv articles and metadata about the search result set.
 

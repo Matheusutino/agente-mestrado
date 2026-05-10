@@ -26,6 +26,7 @@ class PipelineResult(BaseModel):
         "linear_svm",
         "multinomial_nb",
         "decision_tree",
+        "random_forest",
         "knn",
     ]
     metrics_requested: list[Literal["accuracy", "f1_macro", "precision_macro", "recall_macro"]]
@@ -33,9 +34,9 @@ class PipelineResult(BaseModel):
     justification: str
 
 
-class AttemptSummary(BaseModel):
-    attempt_index: int
-    attempt_dir: str
+class RoundSummary(BaseModel):
+    round_index: int
+    round_dir: str
     status: Literal["success", "failed"]
     task: str
     result: PipelineResult | None = None
@@ -49,9 +50,9 @@ class AttemptSummary(BaseModel):
     error: str | None = None
 
 
-class RevisionAttemptSummary(BaseModel):
-    attempt_index: int
-    attempt_dir: str
+class RevisionRoundSummary(BaseModel):
+    round_index: int
+    round_dir: str
     status: Literal["success", "failed"]
     task: str
     result: PipelineResult | None = None
@@ -65,16 +66,16 @@ class RevisionAttemptSummary(BaseModel):
 
 
 class RevisionRequest(BaseModel):
-    previous_attempt: RevisionAttemptSummary
-    prior_attempts: list[RevisionAttemptSummary] = Field(default_factory=list)
+    previous_round: RevisionRoundSummary
+    prior_rounds: list[RevisionRoundSummary] = Field(default_factory=list)
 
 
 class OptimizationHistory(BaseModel):
     task: str
-    max_attempts: int
+    max_rounds: int
     max_minutes: int | None = None
-    attempts: list[AttemptSummary] = Field(default_factory=list)
-    selected_attempt_index: int | None = None
-    selected_attempt_dir: str | None = None
+    rounds: list[RoundSummary] = Field(default_factory=list)
+    selected_round_index: int | None = None
+    selected_round_dir: str | None = None
     final_result: PipelineResult | None = None
     finished_reason: str

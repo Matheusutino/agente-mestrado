@@ -16,7 +16,11 @@ def preprocess_dataset(
     label_column: str,
     run_dir: str,
 ) -> PreprocessingResult:
-    """Load, clean, and split a dataset, then persist split artifacts into run_dir."""
+    """Load, clean, and split a dataset, then persist split artifacts into run_dir.
+
+    Example:
+        `preprocess_dataset("/abs/path/to/data.csv", "text", "label", "/abs/path/to/run_dir")`
+    """
     run_path = Path(run_dir).expanduser().resolve()
     run_path.mkdir(parents=True, exist_ok=True)
     dataset_path = str(Path(dataset_path).expanduser().resolve())
